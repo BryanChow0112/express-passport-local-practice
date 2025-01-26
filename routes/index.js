@@ -10,6 +10,10 @@ const isAdmin = require("./authMiddleware").isAdmin;
  * -------------- POST ROUTES ----------------
  */
 
+/**
+ * Route for user login.
+ * Uses Passport's local authentication strategy.
+ */
 router.post(
   "/login",
   passport.authenticate("local", {
@@ -18,19 +22,25 @@ router.post(
   })
 );
 
+/**
+ * Route for user registration.
+ * Creates a new user in the database after hashing the password.
+ */
 router.post("/register", (req, res, next) => {
+  // Generate salt and hash from the provided password
   const saltHash = genPassword(req.body.pw);
-
   const salt = saltHash.salt;
   const hash = saltHash.hash;
 
+  // Create a new User object with data from the registration form
   const newUser = new User({
-    username: req.body.uname,
-    hash: hash,
-    salt: salt,
+    username: req.body.uname, // Username from the form ('uname' field)
+    hash: hash, // Hashed password
+    salt: salt, // Salt used for hashing
     admin: true
   });
 
+  // Save the new user to the database
   newUser.save().then((user) => {
     console.log(user);
   });
@@ -42,11 +52,17 @@ router.post("/register", (req, res, next) => {
  * -------------- GET ROUTES ----------------
  */
 
+/**
+ * Home route - simple landing page.
+ */
 router.get("/", (req, res, next) => {
   res.send('<h1>Home</h1><p>Please <a href="/register">register</a></p>');
 });
 
-// When you visit http://localhost:3000/login, you will see "Login Page"
+/**
+ * Route to display the login page.
+ * Serves a simple HTML form for user login.
+ */
 router.get("/login", (req, res, next) => {
   const form =
     '<h1>Login Page</h1><form method="POST" action="/login">\
@@ -57,7 +73,10 @@ router.get("/login", (req, res, next) => {
   res.send(form);
 });
 
-// When you visit http://localhost:3000/register, you will see "Register Page"
+/**
+ * Route to display the registration page.
+ * Serves a simple HTML form for user registration.
+ */
 router.get("/register", (req, res, next) => {
   const form =
     '<h1>Register Page</h1><form method="post" action="register">\
@@ -69,21 +88,27 @@ router.get("/register", (req, res, next) => {
 });
 
 /**
- * Lookup how to authenticate users on routes with Local Strategy
- * Google Search: "How to use Express Passport Local Strategy"
- *
- * Also, look up what behaviour express session has without a maxage set
+ * Protected route - accessible only to authenticated users.
+ * Uses 'isAuth' middleware to ensure user is logged in.
  */
 router.get("/protected-route", isAuth, (req, res, next) => {
   res.send("You made it to the route.");
 });
 
+/**
+ * Admin route - accessible only to authenticated admin users.
+ * Uses 'isAdmin' middleware to ensure user is logged in and has admin role.
+ */
 router.get("/admin-route", isAdmin, (req, res, next) => {
   res.send("You made it to the admin route.");
 });
 
-// Visiting this route logs the user out
+/**
+ * Logout route - logs the user out and redirects to protected route (can be changed).
+ * Uses Passport's `req.logout()` function to clear the user session.
+ */
 router.get("/logout", (req, res, next) => {
+  // Passport.js provides the req.logout() function to clear the session.
   req.logout((err) => {
     if (err) {
       return next(err);
@@ -92,12 +117,20 @@ router.get("/logout", (req, res, next) => {
   });
 });
 
+/**
+ * Route for successful login redirect.
+ * User is redirected here by Passport on successful authentication.
+ */
 router.get("/login-success", (req, res, next) => {
   res.send(
     '<p>You successfully logged in. --> <a href="/protected-route">Go to protected route</a></p>'
   );
 });
 
+/**
+ * Route for failed login redirect.
+ * User is redirected here by Passport on failed authentication.
+ */
 router.get("/login-failure", (req, res, next) => {
   res.send("You entered the wrong password.");
 });
